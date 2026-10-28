@@ -1,0 +1,16 @@
+{
+  "name": "lifesprint",
+  "version": "1.0.0",
+  "description": "Plan goals and projects with epics, sprints, releases and a dashboard. Works offline; your plan stays in your browser.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/",
+    "test:unit": "node --test tests/server.test.js tests/store.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "puppeteer-core": "24.10.0"
+  }
+}

@@ -1,0 +1,19 @@
+# Publishes the public/ folder to GitLab Pages (free static hosting).
+# The app saves data in each visitor's browser, so no server or database is needed.
+image: node:20-alpine
+
+test:
+  stage: test
+  script:
+    - node --check public/app.js public/store.js public/dashboard.js server.js
+    - node --test tests/server.test.js tests/store.test.js
+
+pages:
+  stage: deploy
+  script:
+    - echo "Publishing public/"
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
