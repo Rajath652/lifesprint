@@ -57,17 +57,43 @@ The layout adapts to narrow screens.
 
 <img src="docs/screenshots/06-responsive-view.png" alt="Dashboard on a phone" width="320">
 
-## Use it
+## Run it on your computer
 
-**Hosted:** open the site and click **Install app** in the sidebar (or the install icon in the address bar). After the first visit it works without internet.
+You need [Node.js](https://nodejs.org) 18 or newer. There is nothing else to install: the app has no dependencies.
 
-**On your own computer:** you need [Node.js](https://nodejs.org) 18 or newer.
+1. Get the code: clone the repository, or download it as a ZIP and unzip it.
 
-```sh
-node server.js
-```
+   ```sh
+   git clone https://github.com/Rajath652/lifesprint.git
+   cd lifesprint
+   ```
 
-Then open http://localhost:4000. On Windows you can double-click `start.bat` instead.
+2. Start it:
+
+   ```sh
+   node server.js
+   ```
+
+   On Windows you can double-click `start.bat` instead. It starts the server and opens your browser.
+
+3. Open http://localhost:4000 and choose **Start with an example plan**, **Start with an empty plan**, or **Import a backup file**.
+
+To use a different port, run `PORT=5000 node server.js` (in PowerShell: `$env:PORT=5000; node server.js`). To stop the server, press `Ctrl+C` in its window.
+
+## Install it as an app
+
+LifeSprint can be installed so it opens in its own window, like a normal program, and works without internet.
+
+1. Open LifeSprint in Chrome or Edge, on your computer (`localhost:4000`) or on a hosted copy.
+2. Click **Install app** at the bottom of the sidebar and follow the steps. Depending on your browser:
+   - **Chrome:** click the install icon at the right end of the address bar.
+   - **Edge:** **…** menu → **Apps** → **Install this site as an app**.
+   - **iPhone and iPad (Safari):** **Share** → **Add to Home Screen**.
+3. Open LifeSprint from the Start menu, Dock or home screen from then on.
+
+![Install LifeSprint as an app](docs/screenshots/09-install-app.png)
+
+Each address keeps its own plan: the app installed from `localhost:4000` and one installed from a hosted copy have separate data. Use **Data & backup** to move a plan between them.
 
 ## Your data
 
