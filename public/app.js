@@ -817,6 +817,17 @@ document.addEventListener('keydown', e => {
 });
 $('#data').onclick = () => db && openData();
 $('#backup').onclick = () => { exportPlan(); toast('Backup downloaded'); };
+$('#refreshPlan').onclick = async () => {
+  const btn = $('#refreshPlan'), svg = btn.querySelector('svg');
+  svg.style.transition = 'transform .6s ease'; svg.style.transform = 'rotate(360deg)';
+  setTimeout(() => { svg.style.transition = ''; svg.style.transform = ''; }, 650);
+  try {
+    const fresh = await Store.loadPlan(workspaceId);
+    if (!fresh) return toast('Nothing stored yet.');
+    db = normalizePlan(fresh);
+    render(); toast('Plan refreshed');
+  } catch (e) { toast('Refresh failed: ' + e.message); }
+};
 $('#wsproj').onclick = () => openWorkspacePicker();
 
 // installable app: shown in any browser tab (hidden once running as the installed app).
