@@ -43,6 +43,22 @@ button,select,input,textarea{font:inherit;color:inherit}
 .shell.min #collapse svg{transform:rotate(180deg)}
 #collapse svg{transition:transform .2s}
 
+/* workspaces */
+.wsw{position:relative}
+.proj{cursor:pointer;border-radius:6px;transition:background .12s}
+.proj:hover{background:var(--hover)}
+.wsdrop{position:absolute;top:calc(100% + 4px);left:0;min-width:200px;right:0;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-lg);z-index:50;overflow:hidden;animation:pop .15s ease-out}
+.wsdi{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:13px;transition:background .1s;border-bottom:1px solid var(--line)}
+.wsdi:last-child{border-bottom:0}
+.wsdi:hover{background:var(--hover)}
+.wsdi.on{background:var(--sel);color:var(--brand)}
+.wsdi .wsdot{width:10px;height:10px;border-radius:50%;flex:none}
+.wsdi .wsacts{margin-left:auto;display:flex;gap:2px;visibility:hidden}
+.wsdi:hover .wsacts{visibility:visible}
+.wsnew{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--brand);font-weight:500;transition:background .1s;border-top:1px solid var(--line)}
+.wsnew:hover{background:var(--sel)}
+.shell.min .wschev{display:none}
+
 .mainw{flex:1;min-width:0;display:flex;flex-direction:column}
 .top{height:56px;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
 .crumb{color:var(--mute)}.crumb b{color:var(--ink);font-weight:500}
@@ -251,7 +267,7 @@ svg .ax{stroke:var(--line)}svg text{fill:var(--mute)}svg .ideal{stroke:var(--mut
 </style></head><body>
 <div class="shell" id="shell">
   <aside class="side">
-    <div class="proj"><div class="pav">LS</div><div class="pn"><b>LifeSprint</b><span>Personal planner</span></div></div>
+    <div class="wsw"><div class="proj" id="wsproj"><div class="pav" id="wsAvatar">LS</div><div class="pn"><b>LifeSprint</b><span id="wsName">My Plan</span></div><svg class="wschev lbl" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-left:auto;color:var(--mute)"><path d="M4 6l4 4 4-4"/></svg></div></div>
     <nav id="nav"></nav>
     <div class="sfoot">
       <button id="install" hidden title="Install LifeSprint as an app"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13.5h11"/></svg><span class="lbl">Install app</span></button>
@@ -262,7 +278,7 @@ svg .ax{stroke:var(--line)}svg text{fill:var(--mute)}svg .ideal{stroke:var(--mut
   </aside>
   <div class="mainw">
     <header class="top">
-      <div class="crumb">Projects / <b>My Plan</b></div><span class="flex"></span><span id="saved"></span><button class="btn s" id="backup" hidden title="Download a backup of your plan">Back up now</button>
+      <div class="crumb">LifeSprint / <b id="bcWs">My Plan</b></div><span class="flex"></span><span id="saved"></span><button class="btn s" id="backup" hidden title="Download a backup of your plan">Back up now</button>
       <label class="search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg><input id="q" placeholder="Search"></label>
       <button class="btn p" id="create">Create</button>
     </header>
