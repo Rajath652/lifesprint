@@ -1,5 +1,6 @@
 // LifeSprint front-end: whole plan lives in memory, saved to this browser (store.js) on every change.
 let db, view = location.hash.slice(1) || 'dashboard', boardSprint = null, epicFilter = '', drag = null;
+let workspaceId = 'default', workspaces = [];
 const STATUSES = [['todo', 'To Do'], ['inprogress', 'In Progress'], ['review', 'In Review'], ['done', 'Done']];
 const PRIORITIES = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 const POINTS = [0, 1, 2, 3, 5, 8, 13, 21];
@@ -59,7 +60,7 @@ const VIEWS = [
 function save() {
   db.rev++;
   $('#saved').textContent = 'Saving…';
-  Store.save(db).then(
+  Store.savePlan(workspaceId, db).then(
     () => { $('#saved').textContent = 'Saved on this device'; },
     err => { $('#saved').textContent = '⚠ Not saved: ' + (err?.message || 'browser storage error'); });
   render();
@@ -655,6 +656,82 @@ function openData() {
   })[b.dataset.a]());
 }
 
+// ---------- workspaces ----------
+const WS_COLORS = ['#0c66e4','#36b37e','#ff5630','#6554c0','#ff8b00','#00b8d9','#8777d9','#57d9a3'];
+
+function renderWorkspaceName() {
+  const ws = workspaces.find(w => w.id === workspaceId);
+  const name = ws?.name || 'My Plan';
+  const wsEl = document.getElementById('wsName'); if (wsEl) wsEl.textContent = name;
+  const bcEl = document.getElementById('bcWs'); if (bcEl) bcEl.textContent = name;
+  const av = document.getElementById('wsAvatar');
+  if (av) {
+    av.textContent = name.split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('') || 'LS';
+    av.style.background = `linear-gradient(135deg,${ws?.color || '#0c66e4'},${(ws?.color || '#0c66e4')}99)`;
+  }
+}
+
+function openWorkspacePicker() {
+  document.querySelector('.wsdrop')?.remove();
+  const proj = document.getElementById('wsproj');
+  const drop = document.createElement('div'); drop.className = 'wsdrop';
+  drop.innerHTML = workspaces.map(w => `<div class="wsdi${w.id === workspaceId ? ' on' : ''}" data-wsid="${esc(w.id)}">
+    <span class="wsdot" style="background:${esc(w.color || '#0c66e4')}"></span>
+    <span class="flex">${esc(w.name)}</span>
+    <span class="wsacts">
+      <button class="btn g s" data-wsren="${esc(w.id)}" title="Rename">✎</button>
+      ${workspaces.length > 1 ? `<button class="btn g s d" data-wsdel="${esc(w.id)}" title="Delete">✕</button>` : ''}
+    </span></div>`).join('')
+    + `<div class="wsnew" id="wsNew"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8 2v12M2 8h12"/></svg> New workspace</div>`;
+  proj.closest('.wsw').appendChild(drop);
+  const close = e => { if (!drop.contains(e.target) && !proj.contains(e.target)) { drop.remove(); document.removeEventListener('mousedown', close); } };
+  setTimeout(() => document.addEventListener('mousedown', close));
+  drop.querySelectorAll('[data-wsid]').forEach(el => el.onclick = async () => {
+    const id = el.dataset.wsid; drop.remove(); if (id !== workspaceId) await switchWorkspace(id);
+  });
+  drop.querySelectorAll('[data-wsren]').forEach(b => b.onclick = e => { e.stopPropagation(); drop.remove(); renameWorkspace(b.dataset.wsren); });
+  drop.querySelectorAll('[data-wsdel]').forEach(b => b.onclick = e => { e.stopPropagation(); drop.remove(); deleteWorkspace(b.dataset.wsdel); });
+  drop.querySelector('#wsNew').onclick = () => { drop.remove(); createWorkspace(); };
+}
+
+async function switchWorkspace(id) {
+  await Store.savePlan(workspaceId, db);
+  workspaceId = id;
+  try { localStorage.setItem('currentWs', id); } catch {}
+  const stored = await Store.loadPlan(id);
+  db = stored ? normalizePlan(stored) : normalizePlan(seedPlan(false));
+  boardSprint = null; epicFilter = relFilter = '';
+  document.querySelectorAll('.modal:not(.locked)').forEach(m => m.remove());
+  renderWorkspaceName(); render();
+  toast('Switched to ' + (workspaces.find(w => w.id === id)?.name || id));
+}
+
+async function createWorkspace() {
+  const name = prompt('Workspace name:'); if (!name?.trim()) return;
+  const id = 'ws_' + Date.now().toString(36);
+  workspaces = [...workspaces, { id, name: name.trim(), color: WS_COLORS[workspaces.length % WS_COLORS.length] }];
+  await Store.saveWorkspaces(workspaces);
+  await switchWorkspace(id);
+}
+
+async function renameWorkspace(id) {
+  const ws = workspaces.find(w => w.id === id); if (!ws) return;
+  const name = prompt('Rename workspace:', ws.name);
+  if (!name?.trim() || name.trim() === ws.name) return;
+  ws.name = name.trim();
+  await Store.saveWorkspaces(workspaces);
+  renderWorkspaceName(); render();
+}
+
+async function deleteWorkspace(id) {
+  if (workspaces.length <= 1) return alert('You need at least one workspace.');
+  const ws = workspaces.find(w => w.id === id);
+  if (!confirm(`Delete workspace "${ws?.name}"?\nAll epics, issues and sprints in it will be permanently deleted.`)) return;
+  workspaces = workspaces.filter(w => w.id !== id);
+  await Promise.all([Store.saveWorkspaces(workspaces), Store.deletePlan(id)]);
+  if (workspaceId === id) await switchWorkspace(workspaces[0].id);
+}
+
 function welcome(problem) {
   const m = document.createElement('div'); m.className = 'modal locked';
   m.innerHTML = `<div class="mb" style="width:520px;text-align:center"><div class="pav" style="width:48px;height:48px;margin:0 auto 14px;font-size:18px">LS</div>
@@ -699,6 +776,7 @@ document.addEventListener('keydown', e => {
 });
 $('#data').onclick = () => db && openData();
 $('#backup').onclick = () => { exportPlan(); toast('Backup downloaded'); };
+$('#wsproj').onclick = () => openWorkspacePicker();
 
 // installable app: shown in any browser tab (hidden once running as the installed app).
 // Chrome / Edge may hand us a prompt to trigger; otherwise explain the browser's own install menu.
@@ -727,21 +805,35 @@ $('#install').onclick = async () => {
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // another tab saved: take its version (open dialogs would hold stale objects, so close them)
-Store.onExternalChange(async ({ rev }) => {
+Store.onExternalChange(async ({ rev, ws }) => {
   if (!db || rev <= db.rev) return;
-  db = normalizePlan(await Store.load());
+  if (ws && ws !== workspaceId) return;
+  db = normalizePlan(await Store.loadPlan(workspaceId));
   document.querySelectorAll('.modal:not(.locked)').forEach(m => m.remove());
   document.querySelector('.modal.locked')?.remove();
   render(); toast('Updated from another window');
 });
 
 (async () => {
-  let stored;
-  try { stored = await Store.load(); }
+  let oldPlan;
+  try { oldPlan = await Store.load(); }
   catch (e) { $('#app').innerHTML = `<div class="empty">This browser blocked storage, so LifeSprint can't save your plan (${esc(e?.message || e)}). Private/incognito windows can cause this.</div>`; return; }
   navigator.storage?.persist?.().catch(() => {});
-  if (!stored) return welcome();
-  try { db = normalizePlan(stored); }
+  // Load workspace list; migrate old single-plan format on first run with workspaces
+  let wsList; try { wsList = await Store.loadWorkspaces(); } catch {}
+  if (!wsList) {
+    const def = { id: 'default', name: 'My Plan', color: '#0c66e4' };
+    wsList = [def];
+    if (oldPlan) await Store.savePlan('default', oldPlan);
+    await Store.saveWorkspaces(wsList);
+    if (!oldPlan) return welcome();
+  }
+  workspaces = wsList;
+  let lastWs; try { lastWs = localStorage.getItem('currentWs'); } catch {}
+  workspaceId = (lastWs && wsList.find(w => w.id === lastWs)) ? lastWs : wsList[0].id;
+  let wsPlan; try { wsPlan = await Store.loadPlan(workspaceId); } catch {}
+  if (!wsPlan) return welcome();
+  try { db = normalizePlan(wsPlan); }
   catch (e) { return welcome(`Your saved plan could not be read (${e.message}). Import a backup or start again.`); }
-  render();
+  renderWorkspaceName(); render();
 })();

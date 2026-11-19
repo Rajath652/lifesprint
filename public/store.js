@@ -23,6 +23,11 @@ const Store = (() => {
     load: () => tx('readonly', s => s.get(KEY)),
     save: async data => { await tx('readwrite', s => s.put(data, KEY)); channel?.postMessage({ rev: data.rev }); },
     onExternalChange: fn => { if (channel) channel.onmessage = e => fn(e.data); },
+    loadWorkspaces: () => tx('readonly', s => s.get('workspaces')),
+    saveWorkspaces: ws => tx('readwrite', s => s.put(ws, 'workspaces')),
+    loadPlan: id => tx('readonly', s => s.get('plan_ws_' + id)),
+    savePlan: (id, data) => tx('readwrite', s => s.put(data, 'plan_ws_' + id)).then(() => channel?.postMessage({ rev: data.rev, ws: id })),
+    deletePlan: id => tx('readwrite', s => s.delete('plan_ws_' + id)),
   };
 })();
 
