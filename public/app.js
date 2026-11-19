@@ -1,6 +1,7 @@
 // LifeSprint front-end: whole plan lives in memory, saved to this browser (store.js) on every change.
 let db, view = location.hash.slice(1) || 'dashboard', boardSprint = null, epicFilter = '', drag = null;
 let workspaceId = 'default', workspaces = [];
+let selected = new Set();
 const STATUSES = [['todo', 'To Do'], ['inprogress', 'In Progress'], ['review', 'In Review'], ['done', 'Done']];
 const PRIORITIES = ['Highest', 'High', 'Medium', 'Low', 'Lowest'];
 const POINTS = [0, 1, 2, 3, 5, 8, 13, 21];
@@ -126,9 +127,10 @@ const bindEpicSelect = () => {
   $('#rf').onchange = e => { relFilter = e.target.value; render(); };
 };
 
-function row(i, sub, kids = []) {
+function row(i, sub, kids = [], showCheck = false) {
   const k = 'i' + i.id;
   return `<div class="row ${sub ? 'sub' : ''} ${i.status === 'done' ? 'done' : ''}" draggable="true" data-id="${i.id}">
+    ${showCheck && !sub ? `<input type="checkbox" class="sel-cb" data-cbid="${i.id}" ${selected.has(i.id) ? 'checked' : ''}>` : ''}
     <span class="tg">${kids.length ? `<button class="chev ${isOpen(k) ? 'open' : ''}" data-tog="${k}" title="Show sub-tasks">${CHEV}</button>` : ''}</span>
     ${typeIcon(i.parentId ? 'subtask' : i.type)}<span class="key">${i.key}</span><span class="t" title="${esc(i.title)}">${esc(i.title)}</span>
     ${kids.length ? `<span class="kc" title="Sub-tasks done">${kids.filter(c => c.status === 'done').length}/${kids.length}</span>` : ''}
@@ -136,11 +138,11 @@ function row(i, sub, kids = []) {
 }
 
 // top-level issues (in rank order) with their sub-tasks nested (collapsible) underneath
-function tree(list) {
+function tree(list, showCheck = false) {
   const tops = list.filter(i => !i.parentId || !list.some(p => p.id == i.parentId)).sort(byRank);
   return tops.map(i => {
     const kids = list.filter(c => c.parentId == i.id).sort(byRank);
-    return row(i, false, kids) + (kids.length && isOpen('i' + i.id) ? kids.map(c => row(c, true)).join('') : '');
+    return row(i, false, kids, showCheck) + (kids.length && isOpen('i' + i.id) ? kids.map(c => row(c, true, [], showCheck)).join('') : '');
   }).join('') || '<div class="empty">No issues here yet</div>';
 }
 
@@ -154,7 +156,41 @@ function bindRows(root, onOpen = i => openIssue(i)) {
     el.onclick = e => e.stopPropagation();
     el.onchange = () => { setStatus(issue(el.dataset.st), el.value); save(); };
   });
+  root.querySelectorAll('.sel-cb').forEach(cb => {
+    cb.onclick = e => {
+      e.stopPropagation();
+      const id = +cb.dataset.cbid;
+      if (cb.checked) selected.add(id); else selected.delete(id);
+      updateBulkBar();
+    };
+  });
   bindToggles(root);
+}
+
+function updateBulkBar() {
+  let bar = document.getElementById('bulkBar');
+  if (!selected.size) { bar?.remove(); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'bulkBar'; bar.className = 'bulk-bar'; document.body.appendChild(bar); }
+  const activeSprints = db.sprints.filter(s => s.state !== 'completed');
+  bar.innerHTML = `<b>${selected.size} issue${selected.size > 1 ? 's' : ''} selected</b>
+    <span>Move to:</span>
+    <select id="bulkSprintSel" style="height:28px;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;font-size:13px;cursor:pointer">
+      <option value="">Backlog</option>
+      ${opts(activeSprints.map(s => [s.id, s.name + (s.state === 'active' ? ' ✓' : '')]), '')}</select>
+    <button class="btn p s" id="bulkApply">Apply</button>
+    <button class="btn s" id="bulkClear" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3)">✕ Clear</button>`;
+  document.getElementById('bulkApply').onclick = () => {
+    const sid = +document.getElementById('bulkSprintSel').value || null;
+    selected.forEach(id => {
+      const i = issue(id); if (!i) return;
+      [i, ...db.issues.filter(c => c.parentId == i.id)].forEach(x => { x.sprintId = sid; });
+    });
+    selected.clear(); bar.remove(); save();
+  };
+  document.getElementById('bulkClear').onclick = () => {
+    selected.clear(); bar.remove();
+    document.querySelectorAll('.sel-cb').forEach(cb => { cb.checked = false; });
+  };
 }
 
 // backlog only: dropping a row on another row reorders (the section drop still moves between sprints)
@@ -206,7 +242,7 @@ function renderBacklog(app) {
     return `<div class="sec ${open ? '' : 'closed'}" data-zone="${s ? s.id : ''}">
       <div class="sh"><button class="chev ${open ? 'open' : ''}" data-tog="${k}">${CHEV}</button>${head}</div>
       ${s?.goal ? `<div class="goal">${esc(s.goal)}</div>` : ''}
-      <div class="list">${tree(list)}</div>
+      <div class="list">${tree(list, true)}</div>
       <div class="add"><input placeholder="+ Create issue" data-add="${s ? s.id : ''}"></div></div>`;
   };
   app.innerHTML = `<h1>Backlog</h1><div class="bar" style="margin-top:16px">${epicSelect()}<span class="flex"></span>
@@ -748,7 +784,12 @@ function welcome(problem) {
 }
 
 // ---------- shell ----------
-window.onhashchange = () => { view = location.hash.slice(1) || 'dashboard'; render(); };
+window.onhashchange = () => {
+  view = location.hash.slice(1) || 'dashboard';
+  selected.clear();
+  document.getElementById('bulkBar')?.remove();
+  render();
+};
 function render() {
   if (!db) return;
   $('#nav').innerHTML = VIEWS.map(([v, l, icon]) => `<a class="${v === view ? 'on' : ''}" href="#${v}" title="${l}">${svg(icon, 'currentColor', 1.6)}<span class="lbl">${l}</span></a>`).join('');
