@@ -58,6 +58,8 @@ button,select,input,textarea{font:inherit;color:inherit}
 .wsnew{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;font-size:13px;color:var(--brand);font-weight:500;transition:background .1s;border-top:1px solid var(--line)}
 .wsnew:hover{background:var(--sel)}
 .shell.min .wschev{display:none}
+.bulk-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-lg);z-index:30;animation:pop .2s;white-space:nowrap}
+.sel-cb{width:15px;height:15px;cursor:pointer;flex:none;accent-color:var(--brand);margin-right:-2px}
 
 .mainw{flex:1;min-width:0;display:flex;flex-direction:column}
 .top{height:56px;display:flex;align-items:center;gap:12px;padding:0 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
@@ -278,7 +280,7 @@ svg .ax{stroke:var(--line)}svg text{fill:var(--mute)}svg .ideal{stroke:var(--mut
   </aside>
   <div class="mainw">
     <header class="top">
-      <div class="crumb">LifeSprint / <b id="bcWs">My Plan</b></div><span class="flex"></span><span id="saved"></span><button class="btn s" id="backup" hidden title="Download a backup of your plan">Back up now</button>
+      <div class="crumb">LifeSprint / <b id="bcWs">My Plan</b></div><span class="flex"></span><span id="saved"></span><button class="btn s" id="refreshPlan" title="Reload plan from storage"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 3.07"/><path d="M10 1v3h3"/></svg></button><button class="btn s" id="backup" hidden title="Download a backup of your plan">Back up now</button>
       <label class="search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg><input id="q" placeholder="Search"></label>
       <button class="btn p" id="create">Create</button>
     </header>
